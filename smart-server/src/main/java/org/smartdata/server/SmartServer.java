@@ -368,6 +368,7 @@ public class SmartServer {
     return processWith(startOption, conf);
   }
 
+  // SmartServer 入口
   public static void main(String[] args) {
     int errorCode = 0;  // if SSM exit normally then the errorCode is 0
     try {

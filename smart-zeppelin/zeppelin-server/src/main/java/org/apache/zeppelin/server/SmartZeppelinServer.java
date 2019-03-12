@@ -103,44 +103,51 @@ public class SmartZeppelinServer {
 
   public SmartZeppelinServer() {}
 
+  // 根据配置文件配置server
   public SmartZeppelinServer(SmartConf conf, SmartEngine engine) throws Exception {
     this.conf = conf;
+    // 如果是从main函数实例化SmartZeepelinServer，这里的engine为null【
     this.engine = engine;
-
+    // 创建Zeeplein配置对象，其中已包含默认的zeppelin配置
     this.zconf = ZeppelinConfiguration.create();
 
-    // set     ZEPPELIN_ADDR and ZEPPELIN_PORT
+    // 获得server地址，默认监听0.0.0.0:7045
     String httpAddr = conf.get(SmartConfKeys.SMART_SERVER_HTTP_ADDRESS_KEY,
         SmartConfKeys.SMART_SERVER_HTTP_ADDRESS_DEFAULT);
     String[] ipport = httpAddr.split(":");
+    // 根据已经获得的server地址配置项，设置zeppelin
     System.setProperty(ConfVars.ZEPPELIN_ADDR.getVarName(), ipport[0]);
     System.setProperty(ConfVars.ZEPPELIN_PORT.getVarName(), ipport[1]);
 
-    // set zeppelin log dir
+    // 读取日志文件夹配置
     String logDir = conf.get(SmartConfKeys.SMART_LOG_DIR_KEY, SmartConfKeys.SMART_LOG_DIR_DEFAULT);
     String zeppelinLogFile = logDir + "/zeppelin.log";
+    // 根据以上读取配置，设置zeppelin日志文件夹
     System.setProperty("zeppelin.log.file", zeppelinLogFile);
 
-    // set ZEPPELIN_CONF_DIR
+    // 设置conf配置目录
     System.setProperty(ConfVars.ZEPPELIN_CONF_DIR.getVarName(),
         conf.get(SmartConfKeys.SMART_CONF_DIR_KEY, SmartConfKeys.SMART_CONF_DIR_DEFAULT));
 
-    // set ZEPPELIN_HOME
+    // 设置zeppelin home
     if (!isBinaryPackage(zconf)) {
       System.setProperty(ConfVars.ZEPPELIN_HOME.getVarName(), "smart-zeppelin/");
     }
   }
 
-
+  // 初始化
   private void init() throws Exception {
+      // 这里是原Zeppelin的配置，与interpreter相关，因为ssm没有用到interpreter，所以按下不表。
     this.depResolver = new DependencyResolver(
         zconf.getString(ConfVars.ZEPPELIN_INTERPRETER_LOCALREPO));
-
+      // 这里是原Zeppelin的配置，与interpreter相关，因为ssm没有用到interpreter，所以按下不表。
     InterpreterOutput.limit = zconf.getInt(ConfVars.ZEPPELIN_INTERPRETER_OUTPUT_LIMIT);
 
+    // 实例化Helium工厂。Helium是Zeppelin的可视化模块。按下不表。
     HeliumApplicationFactory heliumApplicationFactory = new HeliumApplicationFactory();
     HeliumVisualizationFactory heliumVisualizationFactory;
 
+    // Helium相关配置，用于将前端可视化与后端数据绑定。属于Zeppelin原生代码，所以按下不表
     if (isBinaryPackage(zconf)) {
       /* In binary package, zeppelin-web/src/app/visualization and zeppelin-web/src/app/tabledata
        * are copied to lib/node_modules/zeppelin-vis, lib/node_modules/zeppelin-tabledata directory.
@@ -183,27 +190,36 @@ public class SmartZeppelinServer {
     this.credentials = new Credentials(zconf.credentialsPersist(), zconf.getCredentialsPath());
   }
 
+  // 判断Web UI是否启用
   private boolean isZeppelinWebEnabled() {
     return conf.getBoolean(SmartConfKeys.SMART_ENABLE_ZEPPELIN_WEB,
         SmartConfKeys.SMART_ENABLE_ZEPPELIN_WEB_DEFAULT);
   }
 
+  // SmartZeppelinServer 入口
   public static void main(String[] args) throws Exception {
+    // 实例化一个server对象
     SmartZeppelinServer server = new SmartZeppelinServer(new SmartConf(), null);
 
+    // 启动server
     server.start();
 
   }
 
+  // 开启ssm web server
   public void start() throws Exception {
+      // 根据配置对象实例化嵌入式jetty服务
     jettyWebServer = setupJettyServer(zconf);
 
+    // 实例化jetty context存储容器
     ContextHandlerCollection contexts = new ContextHandlerCollection();
+    // 为jetty配置handler，handler即为以上contexts容器中的所有context
     jettyWebServer.setHandler(contexts);
 
-    // Web UI
+    // 创建WebAppContext并配置，并将此context加入到contexts集合中。——Web UI相关
     final WebAppContext webApp = setupWebAppContext(contexts);
 
+    // 初始化Zeppelin配置，主要是Helium的配置。查看Zeppelin的Interpreter文档理解比较好。
     init();
 
     // REST api
@@ -328,6 +344,7 @@ public class SmartZeppelinServer {
     return sslContextFactory;
   }
 
+  //
   class SmartRestApp extends Application {
     @Override
     public Set<Class<?>> getClasses() {
@@ -396,9 +413,14 @@ public class SmartZeppelinServer {
   }
 
   private void setupRestApiContextHandler(WebAppContext webApp) throws Exception {
-
+    // 为WebAppContext设置SessionHandler。
+      /*
+      * 注意：Jetty中的Context处理流程为ServletContextHandler—>SessionHandler—>SecurityHandler—>ServletHandler的
+      * Handler链。所以这里的SessionHandler会在ServletContextHandler（Web UI）与SecurityHandler之间执行。
+      * */
     webApp.setSessionHandler(new SessionHandler());
 
+    //
     ResourceConfig smartConfig = new ApplicationAdapter(new SmartRestApp());
     ServletHolder smartServletHolder = new ServletHolder(new ServletContainer(smartConfig));
     webApp.addServlet(smartServletHolder, SMART_PATH_SPEC);
@@ -417,36 +439,49 @@ public class SmartZeppelinServer {
     }
   }
 
+  // 设置WEB UI的处理context
   private WebAppContext setupWebAppContext(ContextHandlerCollection contexts) {
 
+      // 实例化WebAppContext
     WebAppContext webApp = new WebAppContext();
+    // 设置WebAppContext的服务路径为/
     webApp.setContextPath(zconf.getServerContextPath());
-
+    // 如果配置中不启用web ui
     if (!isZeppelinWebEnabled()) {
+        // 不设置web ui的资源目录
       webApp.setResourceBase("");
+      // 将此空的WebAppContext加入到contexts集合中
       contexts.addHandler(webApp);
+      // 退出函数
       return webApp;
     }
 
+    // 如果配置中启用web ui
+      // 配置war资源地址
     File warPath = new File(zconf.getString(ConfVars.ZEPPELIN_WAR));
     //File warPath = new File("../dist/zeppelin-web-0.7.2.war");
+      // 如果该war资源是目录
     if (warPath.isDirectory()) {
-      // Development mode, read from FS
-      // webApp.setDescriptor(warPath+"/WEB-INF/web.xml");
+        // 将此war目录设置为web context的资源目录
       webApp.setResourceBase(warPath.getPath());
+      // 设置资源加载优先级
       webApp.setParentLoaderPriority(true);
     } else {
-      // use packaged WAR
+        // 如果该war资源是war包的形式，则为WebAppContext设置该war包作为服务资源
       webApp.setWar(warPath.getAbsolutePath());
+      // 从配置中得到war包临时目录
       File warTempDirectory = new File(zconf.getRelativeDir(ConfVars.ZEPPELIN_WAR_TEMPDIR));
+      // 创建该目录
       warTempDirectory.mkdir();
       LOG.info("ZeppelinServer Webapp path: {}", warTempDirectory.getPath());
+      // war包中的资源会被释放到该目录
       webApp.setTempDirectory(warTempDirectory);
     }
-    // Explicit bind to root
+    // 指定WebAppContext服务的Servlet映射
     webApp.addServlet(new ServletHolder(new DefaultServlet()), "/*");
+      // 将WebAppContext加入到contexts集合中
     contexts.addHandler(webApp);
-
+    // 增加过滤器，并且配置过滤器过滤地址
     webApp.addFilter(new FilterHolder(CorsFilter.class), "/*",
         EnumSet.allOf(DispatcherType.class));
 
