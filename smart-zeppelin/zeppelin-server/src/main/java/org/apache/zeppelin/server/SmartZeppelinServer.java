@@ -222,11 +222,13 @@ public class SmartZeppelinServer {
     // 初始化Zeppelin配置，主要是Helium的配置。查看Zeppelin的Interpreter文档理解比较好。
     init();
 
-    // REST api
+    // 设置RestApi相关，并把RestApi处理的Servlet映射到WebAppContext。这样contexts就是全局的Context管理器。
+    // 219行主要用于给WebAppContext绑定WebUi资源，225行用于给WebAppContext设置Servlet处理映射。
     setupRestApiContextHandler(webApp);
 
     LOG.info("Starting zeppelin server");
     try {
+        // 开启已经配置好的Jetty服务。
       jettyWebServer.start(); //Instantiates ZeppelinServer
     } catch (Exception e) {
       LOG.error("Error while running jettyServer", e);
@@ -234,6 +236,7 @@ public class SmartZeppelinServer {
     }
     LOG.info("Done, zeppelin server started");
 
+    // 在jvm正常关闭之前调用。用于做点收尾工作。
     Runtime.getRuntime().addShutdownHook(new Thread(){
       @Override public void run() {
         LOG.info("Shutting down Zeppelin Server ... ");
@@ -271,6 +274,7 @@ public class SmartZeppelinServer {
     LOG.info("Bye");
   }
 
+  // 实例化一个JettyServer，并且根据配置中的内容，对JettyServer做出配置修改。
   private static Server setupJettyServer(ZeppelinConfiguration zconf) {
 
     final Server server = new Server();
@@ -344,18 +348,21 @@ public class SmartZeppelinServer {
     return sslContextFactory;
   }
 
-  //
+  // 配置Restful应用
   class SmartRestApp extends Application {
+      // 返回所有privider和资源类类型，用于注册。
     @Override
     public Set<Class<?>> getClasses() {
       Set<Class<?>> classes = new HashSet<>();
       return classes;
     }
 
+    // 返回所有provider和资源类的单例对象，用于注册。
     @Override
     public Set<Object> getSingletons() {
       Set<Object> singletons = new HashSet<>();
 
+      // 下面都是集合添加的常规操作，按下不表。
       SystemRestApi systemApi = new SystemRestApi(engine);
       singletons.add(systemApi);
 
@@ -381,6 +388,7 @@ public class SmartZeppelinServer {
     }
   }
 
+  // Zeppelin的RestApp，提供一些登录验证服务
   class ZeppelinRestApp extends Application {
     @Override
     public Set<Class<?>> getClasses() {
@@ -420,15 +428,19 @@ public class SmartZeppelinServer {
       * */
     webApp.setSessionHandler(new SessionHandler());
 
-    //
+    // 注册Restful api。
     ResourceConfig smartConfig = new ApplicationAdapter(new SmartRestApp());
+    // 将Jersey资源类通过ServletContainer转化为Servlet，用于jetty加载。
     ServletHolder smartServletHolder = new ServletHolder(new ServletContainer(smartConfig));
+    // 将此Servlet与要处理的请求路径映射。
     webApp.addServlet(smartServletHolder, SMART_PATH_SPEC);
 
+    // 以下三行同上
     ResourceConfig zeppelinConfig = new ApplicationAdapter(new ZeppelinRestApp());
     ServletHolder zeppelinServletHolder = new ServletHolder(new ServletContainer(zeppelinConfig));
     webApp.addServlet(zeppelinServletHolder, ZEPPELIN_PATH_SPEC);
 
+    // 设置Shiro过滤器，用于登录验证。默认未启用，用户名密码写在ZeppelinRestApp的LoginRestApi中。
     String shiroIniPath = zconf.getShiroPath();
     if (!StringUtils.isBlank(shiroIniPath)) {
       webApp.setInitParameter("shiroConfigLocations",
@@ -477,7 +489,8 @@ public class SmartZeppelinServer {
       // war包中的资源会被释放到该目录
       webApp.setTempDirectory(warTempDirectory);
     }
-    // 指定WebAppContext服务的Servlet映射
+    // 指定WebAppContext服务的Servlet映射，默认“/”路径使用默认Servlet处理。
+    // DefaultServlet用于将用户请求的相对路径修改为服务器的绝对路径进行资源处理。
     webApp.addServlet(new ServletHolder(new DefaultServlet()), "/*");
       // 将WebAppContext加入到contexts集合中
     contexts.addHandler(webApp);

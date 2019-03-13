@@ -50,7 +50,7 @@ public class JsonResponse<T> {
     this.body = null;
   }
 
-  public JsonResponse(javax.ws.rs.core.Response.Status status, T body) {
+  public @Produces("application/json")JsonResponse(javax.ws.rs.core.Response.Status status, T body) {
     this.status = status;
     this.message = null;
     this.body = body;
