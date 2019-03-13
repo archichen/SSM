@@ -22,6 +22,8 @@ import org.smartdata.conf.SmartConf;
 import org.smartdata.metaservice.MetaService;
 import org.smartdata.metastore.MetaStore;
 
+// ServerContext集成了SmartContext，拥有父类获取SmartConf的能力，并且拓展了父类功能。
+// 增加了可以获得MetaStore和ServerMode（枚举型，支持HDFS和ALLUXIO）的功能。
 public class ServerContext extends SmartContext {
 
   private MetaStore metaStore;
@@ -33,6 +35,7 @@ public class ServerContext extends SmartContext {
   }
 
   public ServerContext(SmartConf conf, MetaStore metaStore) {
+    // 重新配置一下SmartConf
     super(conf);
     this.metaStore = metaStore;
   }

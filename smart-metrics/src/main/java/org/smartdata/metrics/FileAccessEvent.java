@@ -19,6 +19,7 @@ package org.smartdata.metrics;
 
 /**
  * A file access event.
+ * 抽象的文件访问事件，定义了该事件发生时访问的文件路径、访问用户、时间戳
  */
 public class FileAccessEvent implements DataAccessEvent {
   private final String path;

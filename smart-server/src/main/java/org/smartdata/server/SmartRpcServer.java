@@ -50,6 +50,7 @@ import java.util.List;
 
 /**
  * Implements the rpc calls.
+ * SmartRpcServer需要实现SmartAdminProtocol中的各种指令约定。还需要实现SmartClientProtocol中的文件访问事件操作的约定。
  * TODO: Implement statistics for SSM rpc server
  */
 public class SmartRpcServer implements SmartServerProtocols {
@@ -60,10 +61,12 @@ public class SmartRpcServer implements SmartServerProtocols {
   protected final RPC.Server clientRpcServer;
   private final boolean serviceAuthEnabled;
 
+  // 构造函数
   public SmartRpcServer(SmartServer ssm, Configuration conf) throws IOException {
     this.ssm = ssm;
     this.conf = conf;
     // TODO: implement ssm SmartAdminProtocol
+    // 从配置文件中获取Rpc服务地址（默认是0.0.0.0:7042），并返回该地址的InetSocketAddress对象。
     InetSocketAddress rpcAddr = getRpcServerAddress();
     RPC.setProtocolEngine(conf, AdminProtocolProtoBuffer.class, ProtobufRpcEngine.class);
 
@@ -108,7 +111,9 @@ public class SmartRpcServer implements SmartServerProtocols {
     }
   }
 
+  // 从配置文件中获取Rpc服务地址（默认是0.0.0.0:7042），并返回该地址的InetSocketAddress对象。
   private InetSocketAddress getRpcServerAddress() {
+    // 从配置中获取Rpc服务地址和接口。默认是0.0.0.0:7042
     String[] strings = conf.get(SmartConfKeys.SMART_SERVER_RPC_ADDRESS_KEY,
         SmartConfKeys.SMART_SERVER_RPC_ADDRESS_DEFAULT).split(":");
     return new InetSocketAddress(strings[strings.length - 2]

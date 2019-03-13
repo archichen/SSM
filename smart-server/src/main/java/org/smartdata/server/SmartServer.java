@@ -73,21 +73,31 @@ public class SmartServer {
     SLF4JBridgeHandler.install();
   }
 
+  // SmartServer实例化
   public SmartServer(SmartConf conf) {
     this.conf = conf;
     this.confMgr = new ConfManager(conf);
     this.enabled = false;
   }
 
+  // 初始化各模块（MetaStoreSmartEngine、RpcServer、ZeppelinServer、ServletContext）
   public void initWith() throws Exception {
     LOG.info("Start Init Smart Server");
 
+    // 读取Hadoop配置项
     HadoopUtil.setSmartConfByHadoop(conf);
+    // 进行Kerberos授权，如果关闭了授权配置则直接return
     authentication();
+    // 获得MetaStore对象，MetaStore实现了数据库的各种操作，并且实例化了各种Dao层。
     MetaStore metaStore = MetaStoreUtils.getDBAdapter(conf);
+    // ServerContext继承了SmartContext，拥有父类获取SmartConf的能力，并且拓展了父类功能。
+    // 增加了可以获得MetaStore和ServerMode（枚举型，支持HDFS和ALLUXIO）的功能。
     context = new ServerContext(conf, metaStore);
+    // 初始化服务模式标识，默认是基于HDFS
     initServiceMode(conf);
+    // 通过ServerContext实例化SmartEngine
     engine = new SmartEngine(context);
+    // 通过SmartServer对象，实例化SmartRpcServer
     rpcServer = new SmartRpcServer(this, conf);
     zeppelinServer = new SmartZeppelinServer(conf, engine);
 
@@ -173,9 +183,12 @@ public class SmartServer {
       MetaStoreUtils.checkTables(conf);
     }
 
+    // 实例化SmartServer
     SmartServer ssm = new SmartServer(conf);
     try {
+      // 初始化SmartServer相关模块（MetaStoreSmartEngine、RpcServer、ZeppelinServer、ServletContext）
       ssm.initWith();
+      // 运行SmartServer相关模块（ZeppelinServer、RpcServer）
       ssm.run();
       return ssm;
     } catch (Exception e) {
@@ -218,12 +231,14 @@ public class SmartServer {
     return false;
   }
 
+  // Kerberos授权
   private void authentication() throws IOException {
+    // 如果安全认证未开启，则不再执行下面授权部分。
     if (!SecurityUtil.isSecurityEnabled(conf)) {
       return;
     }
 
-    // Load Hadoop configuration files
+    // 从conf中读取所有hadoop配置
     try {
       HadoopUtil.loadHadoopConf(conf);
     } catch (IOException e) {
@@ -233,13 +248,17 @@ public class SmartServer {
       conf.set("hadoop.security.authorization", "true");
     }
 
+    // 配置Kerberos相关信息
     UserGroupInformation.setConfiguration(conf);
 
+    // 获取用户keytab
     String keytabFilename = conf.get(SmartConfKeys.SMART_SERVER_KEYTAB_FILE_KEY);
+    // 下面两行获取登录用户
     String principalConfig = conf.get(SmartConfKeys.SMART_SERVER_KERBEROS_PRINCIPAL_KEY);
     String principal =
         org.apache.hadoop.security.SecurityUtil.getServerPrincipal(principalConfig, (String) null);
 
+    // 使用用户名和用户秘钥登录
     SecurityUtil.loginUsingKeytab(keytabFilename, principal);
   }
 
@@ -249,15 +268,19 @@ public class SmartServer {
    * @throws Exception
    */
   private void run() throws Exception {
+    // DFS是否开启标志，默认开启
     boolean enabled = conf.getBoolean(SmartConfKeys.SMART_DFS_ENABLED,
         SmartConfKeys.SMART_DFS_ENABLED_DEFAULT);
 
+    // 如果DFS开启，则启动SmartEngine
     if (enabled) {
       startEngines();
     }
 
+    // 开启RpcServer
     rpcServer.start();
 
+    // 如果ZeppelinServer已经实例化，则开启ZeppelinServer
     if (zeppelinServer != null) {
       zeppelinServer.start();
     }
@@ -334,10 +357,13 @@ public class SmartServer {
     }
   }
 
+  // 初始化服务模式
   private void initServiceMode(SmartConf conf) {
+    // 获取配置的服务模式，默认是HDFS
     String serviceModeStr = conf.get(SmartConfKeys.SMART_SERVICE_MODE_KEY,
         SmartConfKeys.SMART_SERVICE_MODE_DEFAULT);
     try {
+      // 设置ServerContext中的服务模式
       context.setServiceMode(ServiceMode.valueOf(serviceModeStr.trim().toUpperCase()));
     } catch (IllegalStateException e) {
       String errorMsg =

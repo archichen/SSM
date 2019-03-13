@@ -41,12 +41,14 @@ public class SystemRestApi {
     this.smartEngine = smartEngine;
   }
 
+  // 获得版本信息
   @GET
   @Path("/version")
   public Response version() {
     return new JsonResponse<>(Response.Status.OK, "SSM version", "1.5.0-SNAPSHOT").build();
   }
 
+  // 获得server列表（未存活server不会被列出）
   @GET
   @Path("/servers")
   public Response servers() {
@@ -54,6 +56,7 @@ public class SystemRestApi {
     return new JsonResponse<>(Response.Status.OK, smartEngine.getStandbyServers()).build();
   }
 
+  // 获得agent信息（未存活agent不会被列出）
   @GET
   @Path("/agents")
   public Response agents() {

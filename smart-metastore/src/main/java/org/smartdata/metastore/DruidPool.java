@@ -29,6 +29,7 @@ import java.util.Properties;
 public class DruidPool implements DBPool {
   private final DruidDataSource ds;
 
+  // 构造函数，使用传入的配置属性实例化数据源
   public DruidPool(Properties properties) throws MetaStoreException {
     try {
       ds =
@@ -38,10 +39,12 @@ public class DruidPool implements DBPool {
     }
   }
 
+  // 获取数据源对象
   public DataSource getDataSource() {
     return ds;
   }
 
+  // 获取数据源连接对象
   public Connection getConnection() throws SQLException {
     return ds.getConnection();
   }

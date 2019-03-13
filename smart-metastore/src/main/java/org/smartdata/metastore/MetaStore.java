@@ -130,9 +130,12 @@ public class MetaStore implements CopyMetaService, CmdletMetaService, BackupMeta
   private SmallFileDao smallFileDao;
   private ErasureCodingPolicyDao ecDao;
 
+  // 通过DBPool中的数据源，实例化各种Dao层
   public MetaStore(DBPool pool) throws MetaStoreException {
     this.pool = pool;
+    // 初始化数据库信息，主要是获得数据库类型
     initDbInfo();
+    // TODO: 各种Dao的数据库查询操作，先省略。
     ruleDao = new RuleDao(pool.getDataSource());
     cmdletDao = new CmdletDao(pool.getDataSource());
     actionDao = new ActionDao(pool.getDataSource());
@@ -159,21 +162,29 @@ public class MetaStore implements CopyMetaService, CmdletMetaService, BackupMeta
     ecDao = new ErasureCodingPolicyDao(pool.getDataSource());
   }
 
+  // 初始化数据库信息，主要是获得数据库类型
   private void initDbInfo() throws MetaStoreException {
     Connection conn = null;
     try {
       try {
+        // 获取数据源的连接对象
         conn = getConnection();
+        // 获取连接驱动名
         String driver = conn.getMetaData().getDriverName();
+        // 小写化驱动名
         driver = driver.toLowerCase();
+        // 如果使用的驱动是sqlite
         if (driver.contains("sqlite")) {
+          // 将数据库类型标志更改为SQLITE
           dbType = DBType.SQLITE;
         } else if (driver.contains("mysql")) {
+          // 将数据库类型标志更改为MYSQL
           dbType = DBType.MYSQL;
         } else {
           throw new MetaStoreException("Unknown database: " + driver);
         }
       } finally {
+        // 如果连接存在，那就安全关闭连接。
         if (conn != null) {
           closeConnection(conn);
         }
@@ -183,6 +194,7 @@ public class MetaStore implements CopyMetaService, CmdletMetaService, BackupMeta
     }
   }
 
+  // 从DruidPool数据源中获取数据源的连接对象
   public Connection getConnection() throws MetaStoreException {
     if (pool != null) {
       try {
@@ -194,6 +206,7 @@ public class MetaStore implements CopyMetaService, CmdletMetaService, BackupMeta
     return null;
   }
 
+  // 关闭数据源连接
   private void closeConnection(Connection conn) throws MetaStoreException {
     if (pool != null) {
       try {
@@ -204,6 +217,7 @@ public class MetaStore implements CopyMetaService, CmdletMetaService, BackupMeta
     }
   }
 
+  // 获取数据库类型，这里的数据库类型在initDbInfo中有修改。
   public DBType getDbType() {
     return dbType;
   }

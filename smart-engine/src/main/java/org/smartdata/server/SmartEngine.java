@@ -42,6 +42,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
+// SmartEngine部分，ssm的核心部分，相当于一个controller层，用于对进来的请求分配处理器处理。
 public class SmartEngine extends AbstractService {
   private ConfManager confMgr;
   private SmartConf conf;
@@ -54,12 +55,14 @@ public class SmartEngine extends AbstractService {
   private List<AbstractService> services = new ArrayList<>();
   public static final Logger LOG = LoggerFactory.getLogger(SmartEngine.class);
 
+  // 构造函数初始化部分
   public SmartEngine(ServerContext context) {
     super(context);
     this.serverContext = context;
     this.conf = serverContext.getConf();
   }
 
+  //
   @Override
   public void init() throws IOException {
     statesMgr = new StatesManager(serverContext);

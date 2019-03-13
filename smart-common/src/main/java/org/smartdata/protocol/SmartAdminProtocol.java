@@ -30,6 +30,7 @@ import org.smartdata.model.RuleState;
 import java.io.IOException;
 import java.util.List;
 
+// SmartAdminProtocol提供了各种指令的实现规范约定。
 @KerberosInfo(
   serverPrincipal = SmartConfKeys.SMART_SERVER_KERBEROS_PRINCIPAL_KEY)
 public interface SmartAdminProtocol {

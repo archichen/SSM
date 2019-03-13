@@ -463,42 +463,58 @@ public class MetaStoreUtils {
     getDBAdapter(conf).checkTables();
   }
 
+  // 通过数据库连接地址获取数据库名
   public static String getMysqlDBName(String url) throws SQLException {
     NonRegisteringDriver nonRegisteringDriver = new NonRegisteringDriver();
     Properties properties = nonRegisteringDriver.parseURL(url, null);
     return properties.getProperty(nonRegisteringDriver.DBNAME_PROPERTY_KEY);
   }
 
+  // 获取MetaStore
   public static MetaStore getDBAdapter(
           SmartConf conf) throws MetaStoreException {
+    // 下面两行代码获得ClassLoader资源载入路径。
     URL pathUrl = ClassLoader.getSystemResource("");
     String path = pathUrl.getPath();
 
     String fileName = "druid.xml";
+    // 生成druid配置文件绝对路径
     String expectedCpPath = path + fileName;
     LOG.info("Expected DB connection pool configuration path = "
             + expectedCpPath);
+    // 尝试抽象的描述druid.xml文件
     File cpConfigFile = new File(expectedCpPath);
+    // 如果druid.xml文件存在
     if (cpConfigFile.exists()) {
       LOG.info("Using pool configure file: " + expectedCpPath);
       Properties p = new Properties();
       try {
+        // 从xml读取配置项
         p.loadFromXML(new FileInputStream(cpConfigFile));
 
+        // 获得smart-site.xml中的数据库连接地址
         String url = conf.get(SmartConfKeys.SMART_METASTORE_DB_URL_KEY);
+        // 如果在smart-site.xml中配置数据连接地址，则将url加入到Properties里面去。我本地并没有在smart-site.xml中配置这个属性，所以这里还是用的druid.xml中的配置。
         if (url != null) {
           p.setProperty("url", url);
         }
 
+        // 重新从Properties中获取一下url属性。
         String purl = p.getProperty("url");
+        // 这里假设的情况就是smart-site.xml或druid.xml中配置的数据库连接地址都是空。
         if (purl == null || purl.length() == 0) {
+          // 如果用户没有配置数据库，就在用户的Home目录创建一个smart-test-default.db作为默认使用的数据库。
           purl = getDefaultSqliteDB(); // For testing
+          // 把这个系统生成的数据库加入带配置文件中。
           p.setProperty("url", purl);
           LOG.warn("Database URL not specified, using " + purl);
         }
 
+        // 判断是否使用jdbc连接数据。
         if (purl.startsWith(MetaStoreUtils.MYSQL_URL_PREFIX)) {
+          // 获取连接的数据库名
           String dbName = getMysqlDBName(purl);
+          // 禁止用户定义的数据库名是数据库中保留的库名
           for (String name : DB_NAME_NOT_ALLOWED) {
             if (dbName.equals(name)) {
               throw new MetaStoreException(
@@ -510,6 +526,7 @@ public class MetaStoreUtils {
           }
         }
 
+        // 输出druid.xml的配置，不过屏蔽密码的输出。
         for (String key : p.stringPropertyNames()) {
           if (key.equals("password")) {
             LOG.info("\t" + key + " = **********");
@@ -517,6 +534,7 @@ public class MetaStoreUtils {
             LOG.info("\t" + key + " = " + p.getProperty(key));
           }
         }
+        // 根据druid.xml中的配置，实例化DruidPool
         return new MetaStore(new DruidPool(p));
       } catch (Exception e) {
         if (e instanceof InvalidPropertiesFormatException) {
@@ -530,7 +548,8 @@ public class MetaStoreUtils {
       LOG.info("DB connection pool config file " + expectedCpPath
               + " NOT found.");
     }
-    // Get Default configure from druid-template.xml
+    // 如果druid.xml不存在
+    // 那就从druid-template.xml中获取数据库配置，下面基本与上面相似，省略。
     fileName = "druid-template.xml";
     expectedCpPath = path + fileName;
     LOG.info("Expected DB connection pool configuration path = "
@@ -586,10 +605,11 @@ public class MetaStoreUtils {
 
   /**
    * This default behavior provided here is mainly for convenience.
-   *
+   * 在用户家目录创建smart-test-default.db作为默认数据库
    * @return
    */
   private static String getDefaultSqliteDB() throws MetaStoreException {
+    // 这里获取的目录是用户的家目录，即“/home/xxx/”
     String absFilePath = System.getProperty("user.home")
         + "/smart-test-default.db";
     File file = new File(absFilePath);

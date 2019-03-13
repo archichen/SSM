@@ -20,6 +20,7 @@ package org.smartdata.protocol;
 import org.apache.hadoop.security.KerberosInfo;
 import org.smartdata.conf.SmartConfKeys;
 
+// SmartServerProtocols需要实现SmartAdminProtocol中的各种指令约定。还需要实现SmartClientProtocol中的文件访问事件操作的约定。
 @KerberosInfo(
   serverPrincipal = SmartConfKeys.SMART_SERVER_KERBEROS_PRINCIPAL_KEY)
 public interface SmartServerProtocols extends SmartClientProtocol, SmartAdminProtocol {
