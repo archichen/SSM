@@ -62,6 +62,7 @@ import org.smartdata.protocol.AdminServerProto.SubmitRuleResponseProto;
   serverPrincipal = SmartConfKeys.SMART_SERVER_KERBEROS_PRINCIPAL_KEY)
 @ProtocolInfo(protocolName = SmartConstants.SMART_ADMIN_PROTOCOL_NAME,
     protocolVersion = 1)
+// 定义RPC操作的协议
 public interface AdminProtocolProtoBuffer {
 
   GetServiceStateResponseProto

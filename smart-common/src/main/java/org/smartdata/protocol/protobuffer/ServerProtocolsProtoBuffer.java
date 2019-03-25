@@ -17,6 +17,8 @@
  */
 package org.smartdata.protocol.protobuffer;
 
+// ServerProtocolsProtoBuffer继承了ClientProtocolProtoBuffer，AdminProtocolProtoBuffer
+// 实现ServerProtocolsProtoBuffer接口的类，即需要分别实现Client和Admin的操作方法。
 public interface ServerProtocolsProtoBuffer extends ClientProtocolProtoBuffer,
     AdminProtocolProtoBuffer {
 }

@@ -76,6 +76,21 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+//
+//
+/*
+* ServerProtocolsProtoBuffer继承了ClientProtocolProtoBuffer，AdminProtocolProtoBuffer
+* 实现ServerProtocolsProtoBuffer接口的类，即需要分别实现Client和Admin的操作方法。
+* AdminServerProto和ClientServerProto由smart-common/src/main/java/proto包下的两AdminServer.proto和ClientServer.proto编译形成
+* Protoc编译后的每个Java类对应proto文件中的message，其由接口定义、接口实现类、Builder三个部分组成。
+* 接口定义了该message的每一个field的getter，Builder实现了对该message中的field的setter方法。
+* 对于protoc中的service和rpc字段，service会生成对于的抽象类，并且已servicename.interface生成接口，该接口声明与抽象类类似，但是不集成protoc的Service接口.
+* 即用户可以自己实现servicename.interface的接口，然后使用service提供的newReflectiveBlockingService构建对象。
+* 需要注意的是：servicename.interface的方法定义是非阻塞的，即参数中提供执行成功回调。
+* 而servicename.BlockingInterface是具有阻塞语义的，即参数中不可传入回调函数，更加容易被理解。
+*
+* ServerProtocolsServerSideTranslator基于阻塞接口实现了rpc方法
+* */
 public class ServerProtocolsServerSideTranslator implements
     ServerProtocolsProtoBuffer,
     AdminServerProto.protoService.BlockingInterface,

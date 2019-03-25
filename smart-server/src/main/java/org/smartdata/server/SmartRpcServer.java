@@ -68,22 +68,34 @@ public class SmartRpcServer implements SmartServerProtocols {
     // TODO: implement ssm SmartAdminProtocol
     // 从配置文件中获取Rpc服务地址（默认是0.0.0.0:7042），并返回该地址的InetSocketAddress对象。
     InetSocketAddress rpcAddr = getRpcServerAddress();
+    // 指定RPC使用的序列化engine和序列化协议
     RPC.setProtocolEngine(conf, AdminProtocolProtoBuffer.class, ProtobufRpcEngine.class);
 
+    // RPC服务端可调用的方法实现
     ServerProtocolsServerSideTranslator clientSSMProtocolServerSideTranslatorPB =
         new ServerProtocolsServerSideTranslator(this);
 
+    // 通过protoc生成的抽象类的newReflectiveBlockingService方法构造阻塞语义的BlockingService，其中clientSSMProtocolServerSideTranslatorPB实现了AdminServerProto.protoService.BlockingInterface
+    // 这一步的newReflectiveBlockingService返回了一个实现了com.google.protobuf.BlockingService的实例，即实现了callBlockingMethod等方法。
     BlockingService adminSmartPbService = AdminServerProto.protoService
         .newReflectiveBlockingService(clientSSMProtocolServerSideTranslatorPB);
+    // 通过protoc生成的抽象类的newReflectiveBlockingService方法构造阻塞语义的BlockingService，其中clientSSMProtocolServerSideTranslatorPB实现了clientSmartPbService.protoService.BlockingInterface
     BlockingService clientSmartPbService = ClientServerProto.protoService
         .newReflectiveBlockingService(clientSSMProtocolServerSideTranslatorPB);
 
+    // 从配置文件中获取handler数目
     serviceHandlerCount = conf.getInt(
         SmartConfKeys.SMART_SERVER_RPC_HANDLER_COUNT_KEY,
         SmartConfKeys.SMART_SERVER_RPC_HANDLER_COUNT_DEFAULT);
 
     // TODO: provide service for SmartClientProtocol and SmartAdminProtocol
     // TODO: in different port and server
+    // 设置rpc服务，该rpc服务解析AdminProtocolProtoBuffer协议的数据
+    /* adminSmartPbService是com.google.protobuf.BlockingService接口的实现，其中callBlockingMethod方法可以传入一个MethodDescriptor来调用相关方法。
+    × MethodDescriptor有一个比较重要的参数index, MethodDescriptor通过index判断调用哪一个方法。
+    * clientSSMProtocolServerSideTranslatorPB实现了AdminProtocolProtoBuffer接口。
+    * // TODO: 所以问题来了：setProtocol(AdminProtocolProtoBuffer.class)和setInstance(adminSmartPbService)虽然可以通过adminSmartPbService.callBlockingMethod方法联系起来，但是无法通过AdminProtocolProtoBuffer中的方法描述直接在adminSmartPbService中调用该方法，RPC中又是哪一步调用了adminSmartPbService的callBlockingMethod方法呢？
+    * */
     clientRpcServer = new RPC.Builder(conf)
         .setProtocol(AdminProtocolProtoBuffer.class)
         .setInstance(adminSmartPbService)

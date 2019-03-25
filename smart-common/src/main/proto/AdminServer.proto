@@ -18,7 +18,7 @@
 package org.smartdata.protocol;
 
 option java_package = "org.smartdata.protocol";
-option java_outer_classname = "AdminServerProto";
+option java_outer_classname = "protoService";
 option java_generic_services = true;
 option java_generate_equals_and_hash = true;
 

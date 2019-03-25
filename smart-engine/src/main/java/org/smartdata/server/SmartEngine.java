@@ -62,7 +62,7 @@ public class SmartEngine extends AbstractService {
     this.conf = serverContext.getConf();
   }
 
-  //
+  // 初始化Services
   @Override
   public void init() throws IOException {
     statesMgr = new StatesManager(serverContext);
